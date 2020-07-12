@@ -10,10 +10,11 @@ import io.realm.RealmChangeListener
 import io.realm.Sort
 import android.content.Intent
 import android.support.v7.app.AlertDialog
+import android.view.View
 
 const val EXTRA_TASK = "jp.techacademy.yuuta.taskapp.TASK"
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity() ,View.OnClickListener{
     private lateinit var mRealm: Realm
     private val mRealmListener = object : RealmChangeListener<Realm> {
         override fun onChange(element: Realm) {
@@ -59,12 +60,13 @@ class MainActivity : AppCompatActivity() {
             builder.setTitle("削除")
             builder.setMessage(task.title + "を削除しますか")
 
-            builder.setPositiveButton("OK"){_, _ ->
+            builder.setPositiveButton("OK") { _, _ ->
                 val results = mRealm.where(Task::class.java).equalTo("id", task.id).findAll()
 
                 mRealm.beginTransaction()
                 results.deleteAllFromRealm()
                 mRealm.commitTransaction()
+
                 val resultIntent = Intent(applicationContext, TaskAlarmReceiver::class.java)
                 val resultPendingIntent = PendingIntent.getBroadcast(
                     this@MainActivity,
@@ -88,22 +90,43 @@ class MainActivity : AppCompatActivity() {
         }
 
         reloadListView()
+        search_button.setOnClickListener(this)
+        }
+    var n: String = ""
+    override fun onClick(v: View) {
+        reloadListView()
     }
 
     private fun reloadListView() {
-        // Realmデータベースから、「全てのデータを取得して新しい日時順に並べた結果」を取得
-        val taskRealmResults = mRealm.where(Task::class.java).findAll().sort("date", Sort.DESCENDING)
 
-        // 上記の結果を、TaskList としてセットする
-        mTaskAdapter.taskList = mRealm.copyFromRealm(taskRealmResults)
+        n = search_edit_text.text.toString()
 
-        // TaskのListView用のアダプタに渡す
-        listView1.adapter = mTaskAdapter
+        if (n == ""){
+            // Realmデータベースから、「全てのデータを取得して新しい日時順に並べた結果」を取得
+            val taskRealmResults = mRealm.where(Task::class.java).findAll().sort("date", Sort.DESCENDING)
 
-        // 表示を更新するために、アダプターにデータが変更されたことを知らせる
-        mTaskAdapter.notifyDataSetChanged()
+            // 上記の結果を、TaskList としてセットする
+            mTaskAdapter.taskList = mRealm.copyFromRealm(taskRealmResults)
+
+            // TaskのListView用のアダプタに渡す
+            listView1.adapter = mTaskAdapter
+
+            // 表示を更新するために、アダプターにデータが変更されたことを知らせる
+            mTaskAdapter.notifyDataSetChanged()
+        }else {
+            // Realmデータベースから、「全てのデータを取得して新しい日時順に並べた結果」を取得
+            var taskRealmResults = mRealm.where(Task::class.java).equalTo("category",n).findAll().sort("date", Sort.DESCENDING)
+
+            // 上記の結果を、TaskList としてセットする
+            mTaskAdapter.taskList = mRealm.copyFromRealm(taskRealmResults)
+
+            // TaskのListView用のアダプタに渡す
+            listView1.adapter = mTaskAdapter
+
+            // 表示を更新するために、アダプターにデータが変更されたことを知らせる
+            mTaskAdapter.notifyDataSetChanged()
+        }
     }
-
     override fun onDestroy() {
         super.onDestroy()
 
